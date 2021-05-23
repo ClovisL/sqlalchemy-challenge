@@ -42,12 +42,13 @@ def welcome():
         f"Available Routes:<br/>"
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
+        f"/api/v1.0/tobs<br/>"
     )
 
 
 @app.route("/api/v1.0/precipitation")
 def precipitation():
-    # Design a query to retrieve the last 12 months of precipitation data and plot the results
+    # Design a query to retrieve the last 12 months of precipitation data
     # Calculate the date 1 year ago from the last data point in the database
     previous = dt.date(2017, 8, 23) - dt.timedelta(days=365)
 
@@ -71,7 +72,25 @@ def stations():
     session.close()
     return jsonify(stations)
 
+@app.route("/api/v1.0/tobs")
+def tobs():
+    # Design a query to retrieve the last 12 months of temperature data for the most active station
+    # Calculate the date 1 year ago from the last data point in the database
+    previous = dt.date(2017, 8, 23) - dt.timedelta(days=365)
 
+    # Perform a query to retrieve the data and tobs
+    # Finds most active station
+    mostTemps = session.query(Measurement.station, func.count(Measurement.tobs)).\
+        group_by(Measurement.station).order_by(func.count(Measurement.station).desc()).all()
+    # Gets past year of tobs for most active station
+    pastYearData = session.query(Measurement.tobs).\
+        filter(Measurement.station == mostTemps[0][0]).\
+        filter(Measurement.date >= previous).all()
+
+    pastYear = list(np.ravel(pastYearData))
+
+    session.close()
+    return jsonify(pastYear)
 
 if __name__ == '__main__':
     app.run(debug=True)
