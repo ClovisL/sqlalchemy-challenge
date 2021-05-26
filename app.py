@@ -6,7 +6,7 @@ from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func
 
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
 
 #################################################
 # Database Setup
@@ -43,6 +43,8 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
+        f"/api/v1.0/<start><br/>"
+        f"/api/v1.0/<start>/<end>"
     )
 
 
@@ -91,6 +93,26 @@ def tobs():
 
     session.close()
     return jsonify(pastYear)
+
+@app.route("/api/v1.0/<start>")
+def stats(start=None):
+    select = [func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)]
+    results = session.query(*select).\
+        filter(Measurement.date >= start).all()
+    temps = list(np.ravel(results))
+    
+    session.close()
+    return jsonify(temps)
+
+@app.route("/api/v1.0/<start>/<end>")
+def statsrange(start, end):
+    select = [func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)]
+    results = session.query(*select).\
+        filter(Measurement.date >= start, Measurement.date <= end).all()
+    temps = list(np.ravel(results))
+    
+    session.close()
+    return jsonify(temps)
 
 if __name__ == '__main__':
     app.run(debug=True)
